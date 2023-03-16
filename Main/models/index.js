@@ -6,7 +6,7 @@ const ProductTag = require('./ProductTag');
 
 
 
-// Finding associations between models
+// Relationships between models
 
 // Products belongsTo Category
 Product.belongsTo(Category, {

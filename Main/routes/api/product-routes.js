@@ -4,44 +4,62 @@ const { Product, Category, Tag, ProductTag } = require('../../models');
 // The `/api/products` endpoint
 
 // get all products
-router.get('/', (req, res) => {
-  // find all products
-  // be sure to include its associated Category and Tag data
+router.get('/', (req, res) => {                   
+  Product.findAll({                                   // Find all Products
+    include: [                                        // Include category module
+      Category,
+      {
+        model: Tag,                                   // Tag model
+        through: ProductTag,                          // Use productTag as a bridge table    
+      },
+    ],
+  })
+    .then((products) => res.json(products))           // Found products in JSON
+    .catch((err) => {                                 // Handle errors
+      console.log(err);
+      res.status(500).json(err);
+    });
 });
 
 // get one product
 router.get('/:id', (req, res) => {
-  // find a single product by its `id`
-  // be sure to include its associated Category and Tag data
+  Product.findOne({                                  // Find one product by its id
+    where: {
+      id: req.params.id,                             // Using the id parameter from the URL
+    },
+    include: [                                       // Connected Category and Tag models
+      Category,
+      {
+        model: Tag,
+        through: ProductTag,
+      },
+    ],
+  })
+    .then((products) => res.json(products))         // Return products in JSON 
+    .catch((err) => {                               // Handle errors
+      console.log(err);
+      res.status(400).json(err);
+    });
 });
 
 // create new product
 router.post('/', (req, res) => {
-  /* req.body should look like this...
-    {
-      product_name: "Basketball",
-      price: 200.00,
-      stock: 3,
-      tagIds: [1, 2, 3, 4]
-    }
-  */
-  Product.create(req.body)
-    .then((product) => {
-      // if there's product tags, we need to create pairings to bulk create in the ProductTag model
-      if (req.body.tagIds.length) {
-        const productTagIdArr = req.body.tagIds.map((tag_id) => {
+  Product.create(req.body)                             // Create new Product from request body data
+    .then((product) => {                                    // If success 
+      if (req.body.tagIds && req.body.tagIds.length) {      // Return tags and products that are associated
+        const productTagIdArr = req.body.tagIds.map((tag_id) => {   // ProductTag IDs array
           return {
             product_id: product.id,
             tag_id,
           };
         });
-        return ProductTag.bulkCreate(productTagIdArr);
+        return ProductTag.bulkCreate(productTagIdArr);            // Bulk create ProductTag association
       }
-      // if no product tags, just respond
-      res.status(200).json(product);
+      
+      res.status(200).json(product);                                 // If non, respond with the created Product
     })
-    .then((productTagIds) => res.status(200).json(productTagIds))
-    .catch((err) => {
+    .then((productTagIds) => res.status(200).json(productTagIds))    // Returned JSON response with status
+    .catch((err) => {           
       console.log(err);
       res.status(400).json(err);
     });
